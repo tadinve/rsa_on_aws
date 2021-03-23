@@ -1,5 +1,5 @@
 import boto3
-#parameters
+#parameters to receive from user
 database_name = 'tf-cadabra_glue'
 table_name = 'tf_vg_cadabra'
 new_col_names = ['invoiceno','stockcode','description','quantity','invoicedate','unitprice','customerid','country']
@@ -22,13 +22,13 @@ field_names = [
       "Parameters"
     ]
 
-tot_col_names_provided = len(new_col_names)
-tot_partition_col_names_provided = len(new_partition_keys)
 client = boto3.client('glue')
 response = client.get_table(DatabaseName=database_name,Name=table_name)
 table_definiton = response['Table']
 
 #sanity check before replacing col field_names
+tot_col_names_provided = len(new_col_names)
+tot_partition_col_names_provided = len(new_partition_keys)
 tot_col_names = len(table_definiton['StorageDescriptor']['Columns'])
 tot_partition_col_names = len(table_definiton['PartitionKeys'])
 
@@ -58,3 +58,4 @@ else:
       print(col)
     #update the table using boto3 client
     response = client.update_table(DatabaseName=database_name,TableInput=table_input)
+    print("Rename Complete")
