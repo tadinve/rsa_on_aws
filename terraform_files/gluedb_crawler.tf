@@ -17,6 +17,6 @@ resource "aws_glue_crawler" "glue_crawler" {
   )
 
   s3_target {
-    path = "s3://${aws_s3_bucket.target-s3bucket.bucket}/glue/"
+    path = "s3://${aws_s3_bucket.target-s3bucket.bucket}/SalesTransactions/"
   }
 }
