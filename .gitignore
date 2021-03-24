@@ -1,0 +1,10 @@
+#Terraform Files
+.terraform.lock.hcl
+./terraform/
+/aws/
+awscliv2.zip
+terraform.tfstate
+terraform.tfstate.backup
+
+#other files
+.DS_Store
