@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Cloudformation template for kinesisfireshose-s3-glue-athena
+  
+Parameters:
+  S3BucketName:
+    Type: String
+    Description: Provide Unique bucket name
+    MinLength: 6
+    MaxLength: 25
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+  KinesisFirehoseName: 
+    Type: String
+    Default: PurchaseLogs
+  GlueCrawlerDatabase:
+    Type: String 
+    Default: orderlogs
+  GlueCrawlerName:
+    Type: String 
+    Default: order data 
+Resources:
+  # ec2:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/ec2.yml
+  #     TimeoutInMinutes: 5
+  KinesisFirehose: # It includes s3 bucket 
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/kinesis-fireshose.yml
+      Parameters:
+        KinesisFirehoseName: !Ref KinesisFirehoseName
+        S3BucketName: !Ref S3BucketName
+      TimeoutInMinutes: 5
+  GlueCrawler:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+        TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/glue-crawler.yml
+        Parameters:
+          GlueCrawlerDatabase: !Ref GlueCrawlerDatabase
+          GlueCrawlerName: !Ref GlueCrawlerName
+          BucketName: !Ref S3BucketName
+        TimeoutInMinutes: 5

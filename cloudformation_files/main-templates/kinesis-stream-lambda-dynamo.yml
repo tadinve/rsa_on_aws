@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: | 
+  Cloud formation tempalte to create Amazon Kinesis Stream - Lambda - DynamoDB workflow 
+Parameters:
+  BucketName:
+    Type: String
+    Description: Provide Unique bucket name
+    MinLength: 6
+    MaxLength: 25
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+  KinesisStreamName: 
+    Description: Kinesis stream name 
+    Type: String
+    MinLength: 6
+    MaxLength: 25
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+  Runtime:
+    Type: String
+    Default: python2.7
+  FunctionName:
+    Type: String
+    Default: CadabraLambdaFun
+  LambdaIamRoleName:
+    Type: String 
+    Default: CadabraLambda
+  DBTableName:
+    Type: String
+    Default: CadabraOrders 
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+  LambdaReservedConcurrentExecutions:
+    Type: Number
+    Default: 200
+  KinesisStreamBatchSize:
+    Type: Number 
+    Default: 10
+  KinesisParallelizationFactor:
+    Type: Number 
+    Default: 10
+  KinesisMaximumRecordAgeInSeconds: 
+    Type: Number
+    Default: -1
+  KinesisMaximumBatchingWindowInSeconds:
+    Type: Number 
+    Default: 60
+
+Resources:
+  # ec2:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/ec2.yml
+  #     TimeoutInMinutes: 5
+  # s3Bucket:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/s3.yml
+  #     Parameters:
+  #       BucketName: !Ref BucketName
+  #     TimeoutInMinutes: 5
+  KinesisStream:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/kinesis-stream.yml
+      Parameters:
+        StreamName: !Ref KinesisStreamName
+      TimeoutInMinutes: 5
+  KinesisStreamLambda:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - KinesisStream
+      - DynamoDB
+    Properties:
+      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/kinesis-stream-dynomodb-lambda.yml
+      Parameters:
+        KinesisStreamDeliveryName: !Ref KinesisStreamName
+        DBTableName: !Ref DBTableName
+        LambdaReservedConcurrentExecutions: !Ref LambdaReservedConcurrentExecutions
+        KinesisStreamBatchSize: !Ref KinesisStreamBatchSize
+        KinesisParallelizationFactor: !Ref KinesisParallelizationFactor
+        KinesisMaximumRecordAgeInSeconds: !Ref KinesisMaximumRecordAgeInSeconds
+        KinesisMaximumBatchingWindowInSeconds: !Ref KinesisMaximumBatchingWindowInSeconds
+      TimeoutInMinutes: 5
+  DynamoDB:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/dynamodbtable.yml
+      Parameters:
+        DBTableName: !Ref DBTableName
+      TimeoutInMinutes: 5

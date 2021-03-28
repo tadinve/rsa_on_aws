@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Cloudformation template for Kinesis stream - Kinesis analytics - Lambda - SNS pipeline 
+  
+Parameters:
+  InputStreamName: 
+    Description: Kinesis stream name 
+    Type: String
+    MinLength: 6
+    MaxLength: 25
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+    Default: CadabraOrders
+  OutputStreamName: 
+    Type: String 
+    Default: OrderRateAlarms
+  KinesisAnalyticsName: 
+    Type: String 
+    Default: TransactionRateMonitor
+  FunctionName:
+    Type: String 
+    Default: TransactionRateAlarm
+  SNSTopicName:
+    Type: String 
+    Default: CadabraAlarms
+  SNSendpoint:
+    Type: String
+    Default: "abc@example.com"
+
+Resources:
+  KinesisStream:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/kinesis-stream.yml
+      Parameters:
+        StreamName: !Ref InputStreamName
+      TimeoutInMinutes: 10
+
+  KineisAnalytics:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/kinesis-analytics.yml
+      Parameters:
+        InputStreamName: !Ref InputStreamName
+        OutputStreamName: !Ref OutputStreamName
+        KinesisAnalyticsName: !Ref KinesisAnalyticsName
+      TimeoutInMinutes: 25
+  
+  KinesisStreamLambda:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/kinesis-analytics-sns-lambda.yml
+      Parameters:
+        EventSourceStreamName: !Ref OutputStreamName
+        FunctionName: !Ref FunctionName
+        SNSTopicName: !Ref SNSTopicName
+        SNSendpoint: !Ref SNSendpoint
+      TimeoutInMinutes: 25
