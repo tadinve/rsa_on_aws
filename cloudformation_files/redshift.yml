@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation template for redishit and quicksight workflow 
+  
+Resources:
+  RedshiftIAMrole: 
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: redshift.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+        - arn:aws:iam::aws:policy/AWSGlueConsoleFullAccess
+      RoleName: CadabraRedshiftSpectrumIamRole
+    
+  RedshiftCluster: 
+    Type: "AWS::Redshift::Cluster"
+    Properties:
+      DBName: cadabra
+      MasterUsername: master
+      MasterUserPassword: Password123
+      NodeType: "dc2.large"
+      ClusterType: "single-node"
+      IamRoles:
+        - !GetAtt RedshiftIAMrole.Arn

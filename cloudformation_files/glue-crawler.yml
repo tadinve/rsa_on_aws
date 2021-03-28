@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: 2010-09-09
+#Documentation: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-glue-crawler.html
+Description: CloudFormation template for Glue Crawler
+
+Parameters:
+  BucketName:
+    Type: String
+    Default: orderlogs-rama2
+  GlueCrawlerDatabase:
+    Type: String 
+    Default: orderlogs
+  GlueCrawlerName:
+    Type: String 
+    Default: order data 
+
+Resources:
+  GlueCrawlerIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: GlueCrawlerIamRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "glue.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+
+  # Documentation : https://docs.aws.amazon.com/glue/latest/dg/create-service-policy.html
+  GlueCrawlerIamPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument: 
+        Version: 2012-10-17
+        Statement:
+          - Sid: S3FullAccess
+            Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+            Resource:
+              - !Sub "arn:aws:s3:::${BucketName}/*"  # need to replace this 
+      PolicyName: aws-glue-crawler-policy
+      Roles:
+        - !Ref GlueCrawlerIamRole
+ 
+  GlueCrawerDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: !Ref GlueCrawlerDatabase
+        Description: Glue Crawler database for cadabra order logs
+    
+  GlueCrawler:
+    Type: AWS::Glue::Crawler
+    Properties:
+      Name: !Ref GlueCrawlerName 
+      Role: !GetAtt GlueCrawlerIamRole.Arn
+      DatabaseName: !Ref GlueCrawerDatabase
+      Targets:
+        S3Targets:
+          - Path: !Sub s3://${BucketName}
+            Exclusions: 
+              - es/**
+

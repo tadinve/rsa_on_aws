@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters: 
+  Runtime:
+    Type: String
+    Default: python2.7
+  FunctionName:
+    Type: String
+    Default: CadabraLambdaFun
+  LambdaIamRoleName:
+    Type: String 
+    Default: CadabraLambda
+  KinesisStreamDeliveryName:
+    Type: String 
+    Default: CadabraOrders
+  LambdaReservedConcurrentExecutions:
+    Type: Number
+    Default: 200
+  KinesisStreamBatchSize:
+    Type: Number
+    Default: 500
+  KinesisParallelizationFactor:
+    Type: Number
+    Default: 2
+  KinesisMaximumRecordAgeInSeconds: 
+    Type: Number
+    Default: -1
+  KinesisMaximumBatchingWindowInSeconds:
+    Type: Number
+    Default: 300
+  DBTableName:
+    Type: String
+    Default: CadabraOrders 
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+    
+Resources: 
+  LambdaIAMrole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref LambdaIamRoleName
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonKinesisReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - LambdaIAMrole
+    Properties:
+      FunctionName: !Ref FunctionName
+      Description: Lambda function to process kinesis stream into dynamo db
+      Handler: index.lambda_handler
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/${LambdaIamRoleName} 
+      Runtime: !Ref Runtime
+      Timeout: 300
+      ReservedConcurrentExecutions: !Ref LambdaReservedConcurrentExecutions
+      Code: 
+        ZipFile: !Sub | 
+          import base64
+          import json
+          import boto3
+          import decimal
+
+          def lambda_handler(event, context):
+              item = None
+              dynamo_db = boto3.resource('dynamodb')
+              table = dynamo_db.Table('${DBTableName}')
+              decoded_record_data = [base64.b64decode(record['kinesis']['data']) for record in event['Records']]
+              deserialized_data = [json.loads(decoded_record) for decoded_record in decoded_record_data]
+              print("Legth of stream items received " + str(len(deserialized_data)))
+              with table.batch_writer(overwrite_by_pkeys=["CustomerID", "OrderID"]) as batch_writer:
+                for item in deserialized_data:
+                  invoice = item['InvoiceNo']
+                  customer = int(item['Customer'])
+                  orderDate = item['InvoiceDate']
+                  quantity = item['Quantity']
+                  description = item['Description']
+                  unitPrice = item['UnitPrice']
+                  country = item['Country'].rstrip()
+                  stockCode = item['StockCode']
+                  
+                  # Construct a unique sort key for this line item
+                  orderID = invoice + "-" + stockCode
+
+                  batch_writer.put_item(                        
+                      Item = {
+                                'CustomerID': decimal.Decimal(customer),
+                                'OrderID': orderID,
+                                'OrderDate': orderDate,
+                                'Quantity': decimal.Decimal(quantity),
+                                'UnitPrice': decimal.Decimal(unitPrice),
+                                'Description': description,
+                                'Country': country
+                              }
+                  )
+  LambdaEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: !Ref KinesisStreamBatchSize
+      ParallelizationFactor: !Ref KinesisParallelizationFactor
+      MaximumRecordAgeInSeconds: !Ref KinesisMaximumRecordAgeInSeconds
+      MaximumBatchingWindowInSeconds: !Ref KinesisMaximumBatchingWindowInSeconds
+      EventSourceArn:
+        Fn::Join:
+          - ""
+          -
+            - "arn:aws:kinesis:"
+            -
+              Ref: "AWS::Region"
+            - ":"
+            -
+              Ref: "AWS::AccountId"
+            - !Sub ":stream/${KinesisStreamDeliveryName}"  
+      FunctionName:
+        Fn::GetAtt:
+          - "LambdaFunction"
+          - "Arn"
+      StartingPosition: "TRIM_HORIZON"
+  
+
+            
