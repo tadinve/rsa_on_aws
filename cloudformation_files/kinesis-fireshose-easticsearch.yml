@@ -26,12 +26,18 @@ Parameters:
   SourceIP:
     Type: String 
     Default: "98.207.88.25"
+  TemplateBucketName:
+    Type: String 
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+    Description: Provide Unique bucket name for fetching nested cloudformation templates 
+    MinLength: 6
+    MaxLength: 25
 
 Resources:
   KinesisfirehoseLambdaForElasticSearch:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/kinesis-es-lambda.yml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-es-lambda.yml
       Parameters:
         KinesisFireshoseLambdaName: !Ref KinesisFireshoseLambdaName
       TimeoutInMinutes: 20

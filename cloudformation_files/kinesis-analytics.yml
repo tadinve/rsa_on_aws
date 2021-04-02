@@ -23,12 +23,18 @@ Parameters:
     Description: Name of the output stream to the Kinesis Analytics 
     Type: String
     Default: OrderRateAlarms
+  TemplateBucketName:
+    Type: String 
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+    Description: Provide Unique bucket name for fetching nested cloudformation templates 
+    MinLength: 6
+    MaxLength: 25
   
 Resources:
   OutputKinesisStream:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/kinesis-stream.yml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-stream.yml
       Parameters:
         StreamName: !Ref OutputStreamName
       TimeoutInMinutes: 5
@@ -37,7 +43,7 @@ Resources:
     DependsOn:
       - OutputKinesisStream
     Properties:
-      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/kinesis-analytics-iamrole.yml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-analytics-iamrole.yml
       Parameters:
         InputStreamName: !Ref InputStreamName
         OutputStreamName: !Ref OutputStreamName

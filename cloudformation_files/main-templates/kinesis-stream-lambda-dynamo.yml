@@ -42,24 +42,30 @@ Parameters:
   KinesisMaximumBatchingWindowInSeconds:
     Type: Number 
     Default: 60
+  TemplateBucketName:
+    Type: String 
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+    Description: Provide Unique bucket name for fetching nested cloudformation templates 
+    MinLength: 6
+    MaxLength: 25
 
 Resources:
   # ec2:
   #   Type: AWS::CloudFormation::Stack
   #   Properties:
-  #     TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/ec2.yml
+  #     TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/ec2.yml
   #     TimeoutInMinutes: 5
   # s3Bucket:
   #   Type: AWS::CloudFormation::Stack
   #   Properties:
-  #     TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/s3.yml
+  #     TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/s3.yml
   #     Parameters:
   #       BucketName: !Ref BucketName
   #     TimeoutInMinutes: 5
   KinesisStream:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/kinesis-stream.yml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-stream.yml
       Parameters:
         StreamName: !Ref KinesisStreamName
       TimeoutInMinutes: 5
@@ -69,7 +75,7 @@ Resources:
       - KinesisStream
       - DynamoDB
     Properties:
-      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/kinesis-stream-dynomodb-lambda.yml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-stream-dynomodb-lambda.yml
       Parameters:
         KinesisStreamDeliveryName: !Ref KinesisStreamName
         DBTableName: !Ref DBTableName
@@ -82,7 +88,7 @@ Resources:
   DynamoDB:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/dynamodbtable.yml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/dynamodbtable.yml
       Parameters:
         DBTableName: !Ref DBTableName
       TimeoutInMinutes: 5

@@ -25,12 +25,18 @@ Parameters:
   SNSendpoint:
     Type: String
     Default: "abc@example.com"
+  TemplateBucketName:
+    Type: String 
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+    Description: Provide Unique bucket name for fetching nested cloudformation templates 
+    MinLength: 6
+    MaxLength: 25
 
 Resources:
   KinesisStream:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/kinesis-stream.yml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-stream.yml
       Parameters:
         StreamName: !Ref InputStreamName
       TimeoutInMinutes: 10
@@ -38,17 +44,18 @@ Resources:
   KineisAnalytics:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/kinesis-analytics.yml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-analytics.yml
       Parameters:
         InputStreamName: !Ref InputStreamName
         OutputStreamName: !Ref OutputStreamName
         KinesisAnalyticsName: !Ref KinesisAnalyticsName
+        TemplateBucketName: !Ref TemplateBucketName
       TimeoutInMinutes: 25
   
   KinesisStreamLambda:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/kinesis-analytics-sns-lambda.yml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-analytics-sns-lambda.yml
       Parameters:
         EventSourceStreamName: !Ref OutputStreamName
         FunctionName: !Ref FunctionName

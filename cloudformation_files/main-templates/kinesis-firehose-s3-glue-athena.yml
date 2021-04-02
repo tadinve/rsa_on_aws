@@ -18,6 +18,12 @@ Parameters:
   GlueCrawlerName:
     Type: String 
     Default: order data 
+  TemplateBucketName:
+    Type: String 
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+    Description: Provide Unique bucket name for fetching nested cloudformation templates 
+    MinLength: 6
+    MaxLength: 25
 Resources:
   # ec2:
   #   Type: AWS::CloudFormation::Stack
@@ -27,15 +33,16 @@ Resources:
   KinesisFirehose: # It includes s3 bucket 
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/kinesis-fireshose.yml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-fireshose.yml
       Parameters:
         KinesisFirehoseName: !Ref KinesisFirehoseName
         S3BucketName: !Ref S3BucketName
+        TemplateBucketName: !Ref TemplateBucketName
       TimeoutInMinutes: 5
   GlueCrawler:
     Type: AWS::CloudFormation::Stack
     Properties:
-        TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/glue-crawler.yml
+        TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/glue-crawler.yml
         Parameters:
           GlueCrawlerDatabase: !Ref GlueCrawlerDatabase
           GlueCrawlerName: !Ref GlueCrawlerName

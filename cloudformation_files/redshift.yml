@@ -1,6 +1,9 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: CloudFormation template for redishit and quicksight workflow 
-  
+Parameters:
+  RedshiftClusterPasswrod: 
+    Type: String
+    Default: password 
 Resources:
   RedshiftIAMrole: 
     Type: AWS::IAM::Role
@@ -20,9 +23,10 @@ Resources:
   RedshiftCluster: 
     Type: "AWS::Redshift::Cluster"
     Properties:
+      ClusterIdentifier: cadabra
       DBName: cadabra
       MasterUsername: master
-      MasterUserPassword: Password123
+      MasterUserPassword: !Ref RedshiftClusterPasswrod
       NodeType: "dc2.large"
       ClusterType: "single-node"
       IamRoles:

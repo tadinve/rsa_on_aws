@@ -16,11 +16,17 @@ Parameters:
   BufferingSizeInMBs:
     Type: Number
     Default: 5
+  TemplateBucketName:
+    Type: String 
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+    Description: Provide Unique bucket name for fetching nested cloudformation templates 
+    MinLength: 6
+    MaxLength: 25
 Resources:
   s3Bucket:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/s3.yml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/s3.yml
       Parameters:
         BucketName: !Ref S3BucketName
       TimeoutInMinutes: 5
