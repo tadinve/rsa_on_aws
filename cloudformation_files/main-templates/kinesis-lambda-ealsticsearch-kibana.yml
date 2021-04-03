@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Cloudformation Template for Kinesis Firehose and ElasticSearch 
+
+Parameters:
+  BucketName:
+    Type: String
+    Default: orderlogs-rama2
+  ElasticSearchDomainName:
+    Type: String 
+    Default: cadabra
+  ElasticSearchInstanceType:
+    Type: String 
+    Default: "m4.large.elasticsearch"
+  ESIndexName:
+    Type: String 
+    Default: weblogs
+  ESTypeName:
+    Type: String 
+    Default: weblogs
+  KinesisFireshoseLambdaName: 
+    Type : String 
+    Default: LogTransform
+  KinesisFirehoseName: 
+    Type: String 
+    Default: WebLogs
+  SourceIP:
+    Type: String 
+    Default: "98.207.88.25"
+  TemplateBucketName:
+    Type: String 
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+    Description: Provide Unique bucket name for fetching nested cloudformation templates 
+    MinLength: 6
+    MaxLength: 50
+Resources:
+  # EC2:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+#     TemplateURL: https://cadabra-nested-templates.s3-us-west-2.amazonaws.com/ec2.yml
+  #     TimeoutInMinutes: 5
+  S3Bucket:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/s3.yml
+      Parameters:
+        BucketName: !Ref BucketName
+      TimeoutInMinutes: 10
+  KinesisElasticSearch:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-fireshose-easticsearch.yml
+      Parameters:
+        S3BucketName: !Ref BucketName
+        ElasticSearchDomainName: !Ref ElasticSearchDomainName
+        ElasticSearchInstanceType: !Ref ElasticSearchInstanceType
+        ESIndexName: !Ref ESIndexName
+        ESTypeName: !Ref ESTypeName
+        KinesisFireshoseLambdaName: !Ref KinesisFireshoseLambdaName
+        KinesisFirehoseName: !Ref KinesisFirehoseName
+        SourceIP: !Ref SourceIP
+        TemplateBucketName: !Ref TemplateBucketName
+      TimeoutInMinutes: 30

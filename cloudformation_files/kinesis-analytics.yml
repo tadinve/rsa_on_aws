@@ -1,0 +1,140 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Kinesis Analytics application cloudformation template 
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-kinesisanalytics-application.html
+# For inputschema : https://docs.aws.amazon.com/kinesisanalytics/latest/dev/sch-dis-ref.html
+Parameters:
+  KinesisAnalyticsName:
+    Type: String
+    Default: TransactionRateMonitor
+    Description: Name of the Kinesis Analytics
+  InAppTableNamePrefix:
+    Type: String
+    Default: SOURCE_SQL_STREAM
+    Description: Name of In-Application table in Kinesis Analytics application
+  OutputStreamName: 
+    Description: Kinesis stream name 
+    Type: String
+    Default: OrderRateAlarms
+  InputStreamName: 
+    Description: Name of the input stream to the Kinesis Analytics 
+    Type: String
+    Default: CadabraOrders
+  OutputStreamName: 
+    Description: Name of the output stream to the Kinesis Analytics 
+    Type: String
+    Default: OrderRateAlarms
+  TemplateBucketName:
+    Type: String 
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+    Description: Provide Unique bucket name for fetching nested cloudformation templates 
+    MinLength: 6
+    MaxLength: 50
+  
+Resources:
+  OutputKinesisStream:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-stream.yml
+      Parameters:
+        StreamName: !Ref OutputStreamName
+      TimeoutInMinutes: 5
+  KinesisIAMrole:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - OutputKinesisStream
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-analytics-iamrole.yml
+      Parameters:
+        InputStreamName: !Ref InputStreamName
+        OutputStreamName: !Ref OutputStreamName
+      TimeoutInMinutes: 5
+
+  KinesisAnalyticsApplication:
+    Type: AWS::KinesisAnalytics::Application
+    Properties:
+      ApplicationCode: 
+        CREATE OR REPLACE STREAM "ALARM_STREAM" (order_count INTEGER);
+        CREATE OR REPLACE PUMP "STREAM_PUMP" AS 
+            INSERT INTO "ALARM_STREAM"
+                SELECT STREAM order_count
+                FROM (
+                    SELECT STREAM COUNT(*) OVER TEN_SECOND_SLIDING_WINDOW AS order_count
+                    FROM "SOURCE_SQL_STREAM_001"
+                    WINDOW TEN_SECOND_SLIDING_WINDOW AS (RANGE INTERVAL '10' SECOND PRECEDING)
+                )
+                WHERE order_count >= 10;
+
+        CREATE OR REPLACE STREAM TRIGGER_COUNT_STREAM(
+            order_count INTEGER,
+            trigger_count INTEGER);
+            
+        CREATE OR REPLACE PUMP trigger_count_pump AS INSERT INTO TRIGGER_COUNT_STREAM
+        SELECT STREAM order_count, trigger_count
+        FROM (
+            SELECT STREAM order_count, COUNT(*) OVER W1 as trigger_count
+            FROM "ALARM_STREAM"
+            WINDOW W1 AS (RANGE INTERVAL '1' MINUTE PRECEDING)
+        )
+        WHERE trigger_count >= 1;
+      ApplicationName: !Ref KinesisAnalyticsName
+      Inputs:
+        - NamePrefix: !Ref InAppTableNamePrefix
+          InputSchema:
+            RecordEncoding: "UTF-8"
+            RecordFormat: 
+              RecordFormatType: JSON
+              MappingParameters:
+                JSONMappingParameters:
+                  RecordRowPath: "$"
+            RecordColumns: 
+              - Name: InvoiceNo
+                SqlType: VARCHAR(8)
+                Mapping: $.InvoiceNo
+              - Name: StockCode
+                SqlType: VARCHAR(8)
+                Mapping: $.StockCode
+              - Name: Description
+                SqlType: VARCHAR(64)
+                Mapping: $.Description
+              - Name: Quantity
+                SqlType: VARCHAR(16)
+                Mapping: $.Quantity
+              - Name: InvoiceDate
+                SqlType: VARCHAR(16)
+                Mapping: $.InvoiceDate
+              - Name: UnitPrice
+                SqlType: VARCHAR(16)
+                Mapping: $.UnitPrice
+              - Name: Customer
+                SqlType: VARCHAR(16)
+                Mapping: $.Customer
+              - Name: Country
+                SqlType: VARCHAR(16)
+                Mapping: $.Country
+
+          KinesisStreamsInput:
+            #Inputstream already generatated as part of other template, should stich in main template
+            # so that this hardcoding can be configured with regex. 
+            ResourceARN: !Sub arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${InputStreamName} 
+            RoleARN: !GetAtt KinesisIAMrole.Outputs.kinesisAnalyticsIAMRole # Need to hard code this 
+  
+  KinesisApplicationOutput:
+    Type: AWS::KinesisAnalytics::ApplicationOutput
+    DependsOn:
+      - KinesisAnalyticsApplication
+    Properties:
+      ApplicationName: !Ref KinesisAnalyticsApplication
+      Output: 
+        Name: TRIGGER_COUNT_STREAM  # In-Application stream name that we create in script above 
+        DestinationSchema:
+          RecordFormatType: JSON
+        KinesisStreamsOutput:
+          ResourceARN: !GetAtt OutputKinesisStream.Outputs.KinesisStreamArn
+          RoleARN: !GetAtt KinesisIAMrole.Outputs.kinesisAnalyticsIAMRole
+
+  
+  
+Outputs:
+  KinesisApplicationName:
+    Value: !Ref KinesisAnalyticsApplication
+    Description: Name of the Kinesis application 

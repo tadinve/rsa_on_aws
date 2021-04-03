@@ -1,0 +1,104 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Cloudformation template for Kinesis Stream , Lambda and SNS 
+  
+Parameters:
+  Runtime:
+    Type: String
+    Default: python2.7
+  FunctionName:
+    Type: String
+    Default: TransactionRateAlarm
+  SNSTopicName:
+    Type: String
+    Default: CadabraAlarms
+  EventSourceStreamName:
+    Type: String 
+    Default: OrderRateAlarms
+  SNSProtocol:
+    Type: String 
+    Default: Email 
+  SNSendpoint: 
+    Type: String
+    Default: "abc@example.com"
+  LamdaSNSIamRole:
+    Type: String
+    Default: LambdaKinesisSNSiamRole
+ 
+Resources:
+  LambdaIAMrole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref LamdaSNSIamRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaKinesisExecutionRole
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/AmazonSNSFullAccess
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Path: "/"
+  KinesisSNSLambdaFunction:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - "SNSTopic"
+    Properties:
+      FunctionName: !Ref FunctionName
+      Description: Lambda function to process kinesis stream to send out SMS message
+      Handler: index.lambda_handler
+      Role: !Sub 'arn:aws:iam::${AWS::AccountId}:role/${LamdaSNSIamRole}'
+      Runtime: !Ref Runtime
+      Timeout: 300
+      Code: 
+        ZipFile: !Sub | 
+          from __future__ import print_function
+          import boto3
+          import base64
+
+          client = boto3.client('sns')
+          # Include your SNS topic ARN here.
+          topic_arn = 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${SNSTopicName}'
+
+          def lambda_handler(event, context):
+            try:
+                client.publish(TopicArn=topic_arn, Message='Investigate sudden surge in orders', Subject='Cadabra Order Rate Alarm')
+                print('Successfully delivered alarm message')
+            except Exception as ex:
+                print(ex.message)
+  # Kinesis Stream 
+  LambdaEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn:
+        Fn::Join:
+          - ""
+          -
+            - "arn:aws:kinesis:"
+            -
+              Ref: "AWS::Region"
+            - ":"
+            -
+              Ref: "AWS::AccountId"
+            - !Sub ":stream/${EventSourceStreamName}" 
+      FunctionName:
+        Fn::GetAtt:
+          - "KinesisSNSLambdaFunction"
+          - "Arn"
+      StartingPosition: "TRIM_HORIZON"
+
+  # SNS topic 
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Ref SNSTopicName
+      Subscription:
+        - Protocol: !Ref SNSProtocol
+          Endpoint: !Ref SNSendpoint
+      TopicName: !Ref SNSTopicName
+

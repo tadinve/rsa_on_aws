@@ -1,0 +1,167 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Cloud formation template for ealsticsearch workflow 
+Parameters:
+  ElasticSearchDomainName:
+    Type: String 
+    Default: cadabra
+  ElasticSearchInstanceType:
+    Type: String 
+    Default: "m4.large.elasticsearch"
+  S3BucketName:
+    Type: String 
+    Default: orderlogs-rama2
+  ESIndexName:
+    Type: String 
+    Default: weblogs
+  ESTypeName:
+    Type: String 
+    Default: weblogs
+  KinesisFireshoseLambdaName: 
+    Type : String 
+    Default: LogTransform
+  KinesisFirehoseName: 
+    Type: String 
+    Default: WebLogs
+  SourceIP:
+    Type: String 
+    Default: "98.207.88.25"
+  TemplateBucketName:
+    Type: String 
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+    Description: Provide Unique bucket name for fetching nested cloudformation templates 
+    MinLength: 6
+    MaxLength: 50
+
+Resources:
+  KinesisfirehoseLambdaForElasticSearch:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-es-lambda.yml
+      Parameters:
+        KinesisFireshoseLambdaName: !Ref KinesisFireshoseLambdaName
+      TimeoutInMinutes: 20
+  ElasticsearchDomain:
+    Type: AWS::Elasticsearch::Domain
+    Properties:
+      DomainName: !Ref ElasticSearchDomainName
+      ElasticsearchVersion: 6.4
+      ElasticsearchClusterConfig:
+        InstanceCount: 1
+        InstanceType: !Ref ElasticSearchInstanceType
+      EBSOptions:
+        EBSEnabled: true
+        Iops: 0
+        VolumeSize: 10
+        VolumeType: "gp2"
+      AccessPolicies:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "es:*"
+            Resource: !Sub "arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${ElasticSearchDomainName}/*"
+          - Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+              - es:*
+            Condition:
+              IpAddress:
+                aws:SourceIp:
+                  - !Ref SourceIP
+            Resource: !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${ElasticSearchDomainName}/*
+  KinesisESearchDeliveryStream:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    DependsOn:
+      - FirehoseDeliveryPolicy
+      - KinesisfirehoseLambdaForElasticSearch
+    Properties:
+      DeliveryStreamName: !Ref KinesisFirehoseName
+      ElasticsearchDestinationConfiguration:
+        DomainARN: !GetAtt ElasticsearchDomain.Arn
+        IndexName: !Ref ESIndexName
+        RoleARN: !GetAtt FirehoseESDeliveryRole.Arn
+        TypeName: "fromFirehose"
+        S3Configuration:
+          BucketARN: !Join 
+            - ''
+            - - 'arn:aws:s3:::'
+              - !Ref S3BucketName
+          BufferingHints:
+            IntervalInSeconds: '60'  
+            SizeInMBs: '5'
+          CompressionFormat: UNCOMPRESSED
+          Prefix: /
+          RoleARN: !GetAtt FirehoseESDeliveryRole.Arn
+        ProcessingConfiguration:
+          Enabled: 'true'
+          Processors:
+            - Parameters:
+                - ParameterName: LambdaArn
+                  ParameterValue: !GetAtt KinesisfirehoseLambdaForElasticSearch.Outputs.KinesisESLambdaArn
+              Type: Lambda 
+      Tags:
+        - Key: Environment
+          Value: CadabraProject
+
+  FirehoseESDeliveryRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Action: 'sts:AssumeRole'
+      RoleName: KinesisElasticSearchDeliveryRole
+
+  #https://docs.aws.amazon.com/firehose/latest/dev/controlling-access.html#using-iam-es
+  FirehoseDeliveryPolicy:
+    Type: AWS::IAM::Policy
+    Properties: 
+      PolicyName: firehose_delivery_es_policy
+      PolicyDocument: 
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:AbortMultipartUpload
+              - s3:GetBucketLocation
+              - s3:GetObject
+              - s3:ListBucket
+              - s3:ListBucketMultipartUploads
+              - s3:PutObject
+            Resource:
+              - !Sub arn:aws:s3:::${S3BucketName}
+              - !Sub arn:aws:s3:::${S3BucketName}/*
+          - Effect: Allow
+            Action:
+              - es:*
+            Resource:
+              - '*'
+          - Effect: Allow
+            Action:
+              - kinesis:DescribeStream
+              - kinesis:GetShardIterator
+              - kinesis:GetRecords
+              - kinesis:ListShards
+            Resource: !Sub arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/*
+          - Effect: Allow
+            Action:
+              - logs:PutLogEvents
+            Resource:
+              - '*'
+          - Effect: Allow
+            Action:
+              - lambda:InvokeFunction
+              - lambda:GetFunctionConfiguration
+            Resource:
+              - '*'
+              #- !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${KinesisFireshoseLambdaName}:*
+
+      Roles:
+        - !Ref FirehoseESDeliveryRole

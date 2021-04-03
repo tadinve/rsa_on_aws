@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Cloudformation template for Kinesis stream - Kinesis analytics - Lambda - SNS pipeline 
+  
+Parameters:
+  InputStreamName: 
+    Description: Kinesis stream name 
+    Type: String
+    MinLength: 6
+    MaxLength: 25
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+    Default: CadabraOrders
+  OutputStreamName: 
+    Type: String 
+    Default: OrderRateAlarms
+  KinesisAnalyticsName: 
+    Type: String 
+    Default: TransactionRateMonitor
+  FunctionName:
+    Type: String 
+    Default: TransactionRateAlarm
+  SNSTopicName:
+    Type: String 
+    Default: CadabraAlarms
+  SNSendpoint:
+    Type: String
+    Default: "abc@example.com"
+  TemplateBucketName:
+    Type: String 
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+    Description: Provide Unique bucket name for fetching nested cloudformation templates 
+    MinLength: 6
+    MaxLength: 50
+
+Resources:
+  KinesisStream:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-stream.yml
+      Parameters:
+        StreamName: !Ref InputStreamName
+      TimeoutInMinutes: 10
+
+  KineisAnalytics:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-analytics.yml
+      Parameters:
+        InputStreamName: !Ref InputStreamName
+        OutputStreamName: !Ref OutputStreamName
+        KinesisAnalyticsName: !Ref KinesisAnalyticsName
+        TemplateBucketName: !Ref TemplateBucketName
+      TimeoutInMinutes: 25
+  
+  KinesisStreamLambda:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-analytics-sns-lambda.yml
+      Parameters:
+        EventSourceStreamName: !Ref OutputStreamName
+        FunctionName: !Ref FunctionName
+        SNSTopicName: !Ref SNSTopicName
+        SNSendpoint: !Ref SNSendpoint
+      TimeoutInMinutes: 25

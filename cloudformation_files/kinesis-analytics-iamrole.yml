@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Kinesis Analytics IAM Role 
+# referred document https://docs.aws.amazon.com/kinesisanalytics/latest/dev/iam-role.html  
+Parameters:
+  InputStreamName: 
+    Description: Name of the input stream to the Kinesis Analytics 
+    Type: String
+    Default: CadabraOrders
+  OutputStreamName: 
+    Description: Name of the output stream to the Kinesis Analytics 
+    Type: String
+    Default: OrderRateAlarms
+
+Resources:
+  KinesisAnalyticsIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: kinesisanalytics.amazonaws.com
+            Action: "sts:AssumeRole"
+      Description: Kinesis Analytics IAM role 
+      RoleName: KinesisAnalyticsIAMrole
+      Tags:
+        - Key: Environment 
+          Value: CadabraProject
+
+  KinesisIAMpolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument: 
+        Version: 2012-10-17
+        Statement:
+          - Sid: ReadInputKinesis
+            Effect: Allow
+            Action:
+              - kinesis:DescribeStream
+              - kinesis:GetShardIterator
+              - kinesis:GetRecords
+              - kinesis:ListShards
+            Resource:
+              - !Sub arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${InputStreamName}
+    
+          - Sid: WriteOutputKinesis
+            Effect: Allow
+            Action:
+              - kinesis:DescribeStream
+              - kinesis:PutRecord
+              - kinesis:PutRecords
+            Resource:
+              - !Sub arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${OutputStreamName}
+
+      PolicyName: kinesis-analytics-policy
+      Roles:
+        - !Ref KinesisAnalyticsIAMRole
+  
+Outputs:
+   kinesisAnalyticsIAMRole:
+    Description: The ARN of the firehose delivery stream
+    Value: !GetAtt KinesisAnalyticsIAMRole.Arn

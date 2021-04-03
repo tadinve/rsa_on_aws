@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: DynamoDB table cloudformation template
+  
+Parameters:
+  DBTableName:
+    Type: String
+    Default: CadabraOrders 
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+  
+Resources:
+  DyanmoDB:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - 
+          AttributeName: "CustomerID"
+          AttributeType: "N"
+        - 
+          AttributeName: "OrderID"
+          AttributeType: "S"
+  
+      KeySchema:
+        - 
+          AttributeName: "CustomerID"
+          KeyType: "HASH"
+        - 
+          AttributeName: "OrderID"
+          KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+      TableName: !Ref DBTableName
+      Tags:
+        - Key: Environment 
+          Value: CadabraProject
+      

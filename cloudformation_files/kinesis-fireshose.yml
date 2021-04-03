@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation template for Kinesis Firehose delivery stream 
+
+Parameters: 
+  KinesisFirehoseName: 
+    Description: Kinesis Firehose delivery stream name 
+    Type: String
+    Default: PurchaseLogs
+  S3BucketName:
+    Type: String
+    Default: orderlogs-rama237
+    Description: Provide Unique bucket name 
+  BufferingIntervalInSec:
+    Type: Number 
+    Default: 60
+  BufferingSizeInMBs:
+    Type: Number
+    Default: 5
+  TemplateBucketName:
+    Type: String 
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+    Description: Provide Unique bucket name for fetching nested cloudformation templates 
+    MinLength: 6
+    MaxLength: 50
+Resources:
+  s3Bucket:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/s3.yml
+      Parameters:
+        BucketName: !Ref S3BucketName
+      TimeoutInMinutes: 5
+    
+  kinesisDeliveryStream:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    DependsOn:
+      - deliveryPolicy
+    Properties:
+      DeliveryStreamName: !Ref KinesisFirehoseName
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !Join 
+          - ''
+          - - 'arn:aws:s3:::'
+            - !GetAtt s3Bucket.Outputs.BucketName
+        BufferingHints:
+          IntervalInSeconds: !Ref BufferingIntervalInSec # should we extract to parameters 
+          SizeInMBs: !Ref BufferingSizeInMBs # should we extract to parameters 
+        CompressionFormat: UNCOMPRESSED
+        RoleARN: !GetAtt deliveryRole.Arn
+      Tags:
+        - Key: Environment
+          Value: CadabraProject
+    
+  deliveryRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: KinesisDeliveryStreamIamRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Action: 'sts:AssumeRole'
+  deliveryPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: firehose_delivery_policy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 's3:AbortMultipartUpload'
+              - 's3:GetBucketLocation'
+              - 's3:GetObject'
+              - 's3:ListBucket'
+              - 's3:ListBucketMultipartUploads'
+              - 's3:PutObject'
+            Resource:
+              - !Join 
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !GetAtt s3Bucket.Outputs.BucketName
+              - !Join 
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !GetAtt s3Bucket.Outputs.BucketName
+                  - '*'
+      Roles:
+        - !Ref deliveryRole  
+Outputs:
+   deliverysreamARN:
+    Description: The ARN of the firehose delivery stream
+    Value: !GetAtt kinesisDeliveryStream.Arn

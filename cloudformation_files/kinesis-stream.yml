@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation template for Kinesis stream 
+  
+Parameters:
+  RetentionPeriod: 
+    Description: Retention Period for data 
+    Type: Number
+    Default: 48
+    MinValue: 0
+    MaxValue: 168
+  StreamName: 
+    Description: Kinesis stream name 
+    Type: String
+    Default: CadabraOrders
+    
+Resources:
+  KinesisStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: !Ref StreamName
+      RetentionPeriodHours: !Ref RetentionPeriod
+      ShardCount: 1 
+Outputs:
+  KinesisStreamArn:
+      Description: The ARN of the kinesis stream 
+      Value: !GetAtt KinesisStream.Arn
+
+    
