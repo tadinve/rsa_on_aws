@@ -47,7 +47,7 @@ Parameters:
     AllowedPattern: ([a-zA-Z0-9_.-])+
     Description: Provide Unique bucket name for fetching nested cloudformation templates 
     MinLength: 6
-    MaxLength: 25
+    MaxLength: 50
 
 Resources:
   # ec2:

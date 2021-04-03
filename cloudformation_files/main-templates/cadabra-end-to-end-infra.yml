@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Cloudformation template for end to end cadabra infrastructure creation 
+  
+Parameters:
+  S3BucketName:
+    Type: String
+    Description: Provide Unique bucket name
+    MinLength: 6
+    MaxLength: 25
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+  RedshiftClusterPasswrod:
+    Type: String
+    Default: Password123
+  TemplateBucketName:
+    Type: String 
+    AllowedPattern: ([a-zA-Z0-9_.-])+
+    Description: Provide Unique bucket name for fetching nested cloudformation templates 
+    MinLength: 6
+    MaxLength: 50
+    Default: rama-cloudformation-templates
+  SourceIP:
+    Type: String 
+    Default: "98.207.88.25"
+  KinesisStreamName: 
+    Type: String 
+    Default: CadabraOrders
+  SNSendpoint: 
+    Type: String
+    Default: abc@example.com
+
+Resources:
+  #Kinesis Firehose , S3 , Glue Crawler, Database, Tables, Athena, Redshift 
+  KinesisFirehoseS3GlueAthenaRedshift:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/main-templates/kinesis-firehose-s3-glue-athena-redshiftspectrum.yml
+      Parameters:
+        S3BucketName: !Ref S3BucketName
+        TemplateBucketName: !Ref TemplateBucketName
+        RedshiftClusterPasswrod: !Ref RedshiftClusterPasswrod
+      TimeoutInMinutes: 25
+  # Kinesis firehose (this is different fireshose than the above) , Lambda, ElasticSearch, Kibana
+  KinesisLambdaElasticSearchKibana:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-fireshose-easticsearch.yml
+      Parameters:
+        S3BucketName: !Ref S3BucketName
+        SourceIP: !Ref SourceIP
+        TemplateBucketName: !Ref TemplateBucketName
+      TimeoutInMinutes: 30
+  # Kinesis Stream, Lambda, DynamoDB
+  KinesisStreamLambdaDynamo:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/main-templates/kinesis-stream-lambda-dynamo.yml
+      Parameters:
+        BucketName: !Ref S3BucketName
+        TemplateBucketName: !Ref TemplateBucketName
+        KinesisStreamName: !Ref KinesisStreamName
+      TimeoutInMinutes: 25
+  # Kinesis stream (output stream), Kinesis Analytics
+  KineisAnalytics:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-analytics.yml
+      Parameters:
+        InputStreamName: !Ref KinesisStreamName
+        TemplateBucketName: !Ref TemplateBucketName
+      TimeoutInMinutes: 25
+  
+  # Lambda for kinesis analytics processing, SNS 
+  KinesisStreamLambda:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-analytics-sns-lambda.yml
+      Parameters:
+        SNSendpoint: !Ref SNSendpoint
+      TimeoutInMinutes: 25
