@@ -45,7 +45,6 @@ Resources:
       TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/s3.yml
       Parameters:
         BucketName: !Ref BucketName
-      TimeoutInMinutes: 10
   KinesisElasticSearch:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -60,4 +59,3 @@ Resources:
         KinesisFirehoseName: !Ref KinesisFirehoseName
         SourceIP: !Ref SourceIP
         TemplateBucketName: !Ref TemplateBucketName
-      TimeoutInMinutes: 30

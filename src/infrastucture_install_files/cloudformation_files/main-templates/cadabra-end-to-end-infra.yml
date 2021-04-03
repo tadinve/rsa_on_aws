@@ -49,7 +49,6 @@ Resources:
         S3BucketName: !Ref S3BucketName
         SourceIP: !Ref SourceIP
         TemplateBucketName: !Ref TemplateBucketName
-      TimeoutInMinutes: 30
   # Kinesis Stream, Lambda, DynamoDB
   KinesisStreamLambdaDynamo:
     Type: AWS::CloudFormation::Stack
@@ -59,7 +58,6 @@ Resources:
         BucketName: !Ref S3BucketName
         TemplateBucketName: !Ref TemplateBucketName
         KinesisStreamName: !Ref KinesisStreamName
-      TimeoutInMinutes: 25
   # Kinesis stream (output stream), Kinesis Analytics
   KineisAnalytics:
     Type: AWS::CloudFormation::Stack
@@ -68,7 +66,6 @@ Resources:
       Parameters:
         InputStreamName: !Ref KinesisStreamName
         TemplateBucketName: !Ref TemplateBucketName
-      TimeoutInMinutes: 25
   
   # Lambda for kinesis analytics processing, SNS 
   KinesisStreamLambda:
@@ -77,4 +74,3 @@ Resources:
       TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-analytics-sns-lambda.yml
       Parameters:
         SNSendpoint: !Ref SNSendpoint
-      TimeoutInMinutes: 25

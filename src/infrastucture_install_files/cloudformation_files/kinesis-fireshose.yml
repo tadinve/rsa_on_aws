@@ -29,7 +29,6 @@ Resources:
       TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/s3.yml
       Parameters:
         BucketName: !Ref S3BucketName
-      TimeoutInMinutes: 5
     
   kinesisDeliveryStream:
     Type: AWS::KinesisFirehose::DeliveryStream

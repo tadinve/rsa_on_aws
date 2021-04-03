@@ -37,7 +37,6 @@ Resources:
       TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/kinesis-stream.yml
       Parameters:
         StreamName: !Ref OutputStreamName
-      TimeoutInMinutes: 5
   KinesisIAMrole:
     Type: AWS::CloudFormation::Stack
     DependsOn:
@@ -47,7 +46,6 @@ Resources:
       Parameters:
         InputStreamName: !Ref InputStreamName
         OutputStreamName: !Ref OutputStreamName
-      TimeoutInMinutes: 5
 
   KinesisAnalyticsApplication:
     Type: AWS::KinesisAnalytics::Application

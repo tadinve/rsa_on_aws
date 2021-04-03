@@ -43,7 +43,6 @@ Resources:
         KinesisFirehoseName: !Ref KinesisFirehoseName
         S3BucketName: !Ref S3BucketName
         TemplateBucketName: !Ref TemplateBucketName
-      TimeoutInMinutes: 5
   GlueCrawler:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -52,11 +51,9 @@ Resources:
           GlueCrawlerDatabase: !Ref GlueCrawlerDatabase
           GlueCrawlerName: !Ref GlueCrawlerName
           BucketName: !Ref S3BucketName
-        TimeoutInMinutes: 5
   ReshiftCluster:
     Type: AWS::CloudFormation::Stack
     Properties:
         TemplateURL: !Sub https://${TemplateBucketName}.s3-${AWS::Region}.amazonaws.com/redshift.yml
         Parameters:
           RedshiftClusterPasswrod: !Ref RedshiftClusterPasswrod
-        TimeoutInMinutes: 5
