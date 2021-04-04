@@ -39,7 +39,6 @@ Resources:
         S3BucketName: !Ref S3BucketName
         TemplateBucketName: !Ref TemplateBucketName
         RedshiftClusterPasswrod: !Ref RedshiftClusterPasswrod
-      TimeoutInMinutes: 25
   # Kinesis firehose (this is different fireshose than the above) , Lambda, ElasticSearch, Kibana
   KinesisLambdaElasticSearchKibana:
     Type: AWS::CloudFormation::Stack
