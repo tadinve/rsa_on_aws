@@ -1,6 +1,6 @@
 resource "aws_iam_role" "firehose-log-stream-role" {
   name = "firehose-log-stream-role"
-  tags = local.common_logs
+  tags = local.common_tags
 
   assume_role_policy = <<EOF
 {
