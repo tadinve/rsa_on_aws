@@ -1,5 +1,6 @@
 resource "aws_iam_role" "redshift_role" {
   name = "tf-redshift_role"
+  tags = local.common_tags
 
   assume_role_policy = <<EOF
 {
