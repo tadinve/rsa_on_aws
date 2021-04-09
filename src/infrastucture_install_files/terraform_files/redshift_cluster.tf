@@ -7,4 +7,5 @@ resource "aws_redshift_cluster" "redshift-cadabra" {
   cluster_type        = "single-node"
   skip_final_snapshot = true
   iam_roles           = [aws_iam_role.redshift_role.arn]
+  tags                = local.common_tags
 }

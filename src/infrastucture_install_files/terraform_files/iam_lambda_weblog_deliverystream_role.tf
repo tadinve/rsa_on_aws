@@ -1,5 +1,6 @@
 resource "aws_iam_role" "iam_lambda_weblog_deliverystream" {
   name = "tf-lambda_weblog_deliverystream_role"
+  tags = local.common_tags
 
   assume_role_policy = <<EOF
 {

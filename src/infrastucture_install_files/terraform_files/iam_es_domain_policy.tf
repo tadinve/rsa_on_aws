@@ -1,5 +1,6 @@
 resource "aws_elasticsearch_domain_policy" "es-cadabra-policy" {
   domain_name = aws_elasticsearch_domain.es-cadabra.domain_name
+  tags        = local.common_tags
 
   access_policies = <<POLICIES
 {

@@ -1,5 +1,6 @@
 resource "aws_iam_role" "iam_for_lambda_kinesis_sns" {
   name = "tf-lambda_kinesis_sns_role"
+  tags = local.common_tags
 
   assume_role_policy = <<EOF
 {

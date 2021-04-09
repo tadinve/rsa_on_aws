@@ -11,5 +11,5 @@ resource "aws_lambda_function" "lambda_transform_weblogs" {
 
   runtime          = "nodejs10.x"
   timeout          = 60
-
+  tags             = local.common_tags
 }

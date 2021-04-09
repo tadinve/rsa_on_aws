@@ -1,6 +1,7 @@
 
 resource "aws_glue_catalog_database" "glue_db" {
   name = "tf-cadabra_glue"
+  tags = local.common_tags
 }
 
 resource "aws_glue_crawler" "glue_crawler" {

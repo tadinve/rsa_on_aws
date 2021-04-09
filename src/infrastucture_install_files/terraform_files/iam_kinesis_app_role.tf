@@ -1,5 +1,6 @@
 resource "aws_iam_role" "iam_kinesis_app" {
   name = "tf-kinesis_app_role"
+  tags = local.common_tags
 
   assume_role_policy = <<EOF
 {

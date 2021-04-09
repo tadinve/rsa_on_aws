@@ -1,6 +1,7 @@
 resource "aws_kinesis_firehose_delivery_stream" "tf-weblogs" {
   name        = "tf-weblogs"
   destination = "elasticsearch" 
+  tags        = local.common_tags
 
   s3_configuration {
     role_arn        = aws_iam_role.firehose-log-stream-role.arn
