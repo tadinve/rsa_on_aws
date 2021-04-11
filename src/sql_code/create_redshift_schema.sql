@@ -1,5 +1,5 @@
 CREATE EXTERNAL SCHEMA ORDERLOG_SCHEMA FROM DATA CATALOG
-DATABASE 'orderlogs_db'
+DATABASE 'tf-cadabra_glue'
 iam_role 'arn:aws:iam::<ACCOUNT_ID>:role/tf-redshift_role'
 region '<YOUR_REGION>'
 
