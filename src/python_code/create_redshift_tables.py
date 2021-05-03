@@ -22,7 +22,7 @@ def create_schema_tables(database='dev',user='awsuser'):
     	Sql=create_schema,
     	StatementName='create_schema'
    )
-   print("create_schema Status Code: " + response[ResponseMetadata][HTTPStatusCode])
+   print("create_schema Status Code: " + response['ResponseMetadata']['HTTPStatusCode'])
 
    response = client.execute_statement(
         ClusterIdentifier='tf-redshift-cluster',
@@ -31,4 +31,4 @@ def create_schema_tables(database='dev',user='awsuser'):
         Sql=create_sales_table,
         StatementName='create_sales_table'
    )
-   print("create_sales_table Status Code: " + response[ResponseMetadata][HTTPStatusCode] )
+   print("create_sales_table Status Code: " + response['ResponseMetadata']['HTTPStatusCode'] )
