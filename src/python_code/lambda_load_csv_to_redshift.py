@@ -1,3 +1,5 @@
+#pscopg2 library being used here is imported from https://github.com/jkehler/awslambda-psycopg2
+#for python version 3.8 / 3.6 download the pyscopg2 corresponding folder and rename to psycopg2
 import psycopg2
 import os
 
