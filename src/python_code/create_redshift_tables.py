@@ -22,6 +22,7 @@ def create_schema_tables(database='dev',user='awsuser'):
     	Sql=create_schema,
     	StatementName='create_schema'
    )
+   print(response)
 
    response = client.execute_statement(
         ClusterIdentifier='tf-redshift-cluster',
@@ -30,3 +31,4 @@ def create_schema_tables(database='dev',user='awsuser'):
         Sql=create_sales_table,
         StatementName='create_sales_table'
    )
+   print(response)
