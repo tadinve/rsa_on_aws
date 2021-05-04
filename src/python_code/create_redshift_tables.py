@@ -1,4 +1,5 @@
 import boto3
+import time
 
 def create_schema_tables(database='dev',user='awsuser'):
    client = boto3.client('redshift-data')
@@ -23,7 +24,7 @@ def create_schema_tables(database='dev',user='awsuser'):
     	StatementName='create_schema'
    )
    print(response)
-   sleep(30)
+   time.sleep(5)
 
    response = client.execute_statement(
         ClusterIdentifier='tf-redshift-cluster',
