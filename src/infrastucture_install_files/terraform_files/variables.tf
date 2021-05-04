@@ -18,3 +18,7 @@ variable "redshift_password" {
   type      = string
   sensitive = true
 }
+
+variable "user_region" {
+  type = string
+}
