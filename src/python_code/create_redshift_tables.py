@@ -23,7 +23,7 @@ def create_schema_tables(database='dev',user='awsuser'):
     	StatementName='create_schema'
    )
    print(response)
-   sleep 3
+   sleep(30)
 
    response = client.execute_statement(
         ClusterIdentifier='tf-redshift-cluster',
