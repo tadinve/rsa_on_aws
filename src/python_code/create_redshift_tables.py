@@ -11,7 +11,7 @@ def create_schema_tables(database='dev',user='awsuser'):
    create_sales_table +=      "description varchar(300),"
    create_sales_table +=      "quantity integer,"
    create_sales_table +=      "invoicedate datetime,"
-   create_sales_table +=      "unitprice decimal,"
+   create_sales_table +=      "unitprice decimal(10,2),"
    create_sales_table +=      "customerid varchar,"
    create_sales_table +=      "country varchar)"
    
@@ -23,6 +23,7 @@ def create_schema_tables(database='dev',user='awsuser'):
     	StatementName='create_schema'
    )
    print(response)
+   sleep 3
 
    response = client.execute_statement(
         ClusterIdentifier='tf-redshift-cluster',
